@@ -340,6 +340,13 @@ function App() {
     const isSameSong = currentSongIdRef.current === songId;
     currentSongIdRef.current = songId;
 
+    // Reset timeline when switching tracks so media notifications don't keep old progress
+    if (!isSameSong) {
+      setProgress(0);
+      setDuration(0);
+      lastProgressRef.current = 0;
+    }
+
     audio.src = src;
 
     // Restore progress when same song loads (page refresh scenario)

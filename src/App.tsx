@@ -242,15 +242,19 @@ function App() {
     audioRef.current = audio;
     audio.volume = volume;
 
+    const syncProgress = () => {
+      const currentTime = audio.currentTime || 0;
+      if (Math.abs(currentTime - lastProgressRef.current) > 0.05) {
+        lastProgressRef.current = currentTime;
+        setProgress(currentTime);
+      }
+    };
+
     // High-frequency progress update for accurate lyric sync
     const updateProgress = () => {
       if (audio && !audio.paused) {
-        const currentTime = audio.currentTime || 0;
         // Only update state if progress changed significantly (avoid unnecessary re-renders)
-        if (Math.abs(currentTime - lastProgressRef.current) > 0.05) {
-          lastProgressRef.current = currentTime;
-          setProgress(currentTime);
-        }
+        syncProgress();
       }
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     };
@@ -287,6 +291,10 @@ function App() {
       setProgress(audio.currentTime || 0);
       lastProgressRef.current = audio.currentTime || 0;
     };
+    const handleTimeUpdate = () => {
+      // Fallback for background playback where rAF may be throttled
+      syncProgress();
+    };
 
     audio.addEventListener('loadedmetadata', handleDuration);
     audio.addEventListener('ended', handleEnded);
@@ -294,6 +302,7 @@ function App() {
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('error', handleError);
     audio.addEventListener('seeked', handleSeeked);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
 
     return () => {
       if (animationFrameRef.current) {
@@ -305,6 +314,7 @@ function App() {
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('seeked', handleSeeked);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
       audioRef.current = null;
     };
   }, []);

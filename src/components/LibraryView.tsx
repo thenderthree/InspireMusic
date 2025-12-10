@@ -90,7 +90,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                             TuneHub API
                         </a>
                     </p>
-                    <p>Version 1.0.6</p>
+                    <p>Version 1.0.7</p>
                 </div>
             </div>
         </div>

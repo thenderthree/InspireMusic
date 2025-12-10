@@ -16,5 +16,18 @@
   ],
   "theme_color": "#000000",
   "background_color": "#000000",
-  "display": "standalone"
+  "display": "standalone",
+  "id": "ins-music-202512",
+  "start_url": "https://ins-music.netlify.app",
+  "dir": "ltr",
+  "lang": "zh",
+  "scope": "https://ins-music.netlify.app",
+  "orientation": "natural",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "categories": [
+    "music"
+  ]
 }

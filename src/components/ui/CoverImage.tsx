@@ -7,20 +7,47 @@ interface CoverImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt?: string;
   className?: string;
   iconSize?: number | string;
+  /** Optional class name for the underlying <img> */
+  imageClassName?: string;
+  /** How long to wait before showing the fallback when loading is slow */
+  fallbackDelayMs?: number;
 }
 
 export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
-  ({ src, alt, className, iconSize = "40%", ...props }, ref) => {
+  (
+    {
+      src,
+      alt,
+      className,
+      iconSize = "40%",
+      imageClassName,
+      fallbackDelayMs = 4000,
+      ...props
+    },
+    ref
+  ) => {
     const [hasError, setHasError] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [showFallback, setShowFallback] = useState(false);
 
     useEffect(() => {
       setHasError(false);
-    }, [src]);
+      setIsLoaded(false);
+      setShowFallback(false);
+
+      if (!src) return;
+
+      const timer = window.setTimeout(() => setShowFallback(true), fallbackDelayMs);
+      return () => window.clearTimeout(timer);
+    }, [src, fallbackDelayMs]);
 
     if (!src || hasError) {
       return (
         <div
-          className={clsx("flex items-center justify-center bg-gray-800 text-gray-600 overflow-hidden", className)}
+          className={clsx(
+            "relative flex items-center justify-center bg-gray-900 text-gray-600 overflow-hidden",
+            className
+          )}
           role="img"
           aria-label={alt}
         >
@@ -30,15 +57,37 @@ export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
     }
 
     return (
-      <img
-        ref={ref}
-        src={src}
-        alt={alt}
-        className={className}
-        loading="lazy"
-        onError={() => setHasError(true)}
-        {...props}
-      />
+      <div
+        className={clsx(
+          "relative overflow-hidden bg-gray-900/80",
+          className
+        )}
+        role="img"
+        aria-label={alt}
+        aria-busy={!isLoaded}
+      >
+        {!isLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-600">
+            <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+            {showFallback && <Music size={iconSize} className="relative" />}
+          </div>
+        )}
+
+        <img
+          ref={ref}
+          src={src}
+          alt={alt}
+          className={clsx(
+            "w-full h-full object-cover transition-opacity duration-300",
+            isLoaded ? "opacity-100" : "opacity-0",
+            imageClassName
+          )}
+          loading="lazy"
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasError(true)}
+          {...props}
+        />
+      </div>
     );
   }
 );

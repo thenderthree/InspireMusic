@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Music } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -29,6 +29,18 @@ export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
     const [hasError, setHasError] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [showFallback, setShowFallback] = useState(false);
+    const fallbackTimer = useRef<number>();
+    const imageRef = useRef<HTMLImageElement | null>(null);
+
+    const setImageRef = (node: HTMLImageElement | null) => {
+      imageRef.current = node;
+
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        (ref as React.MutableRefObject<HTMLImageElement | null>).current = node;
+      }
+    };
 
     useEffect(() => {
       setHasError(false);
@@ -37,8 +49,22 @@ export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
 
       if (!src) return;
 
-      const timer = window.setTimeout(() => setShowFallback(true), fallbackDelayMs);
-      return () => window.clearTimeout(timer);
+      if (imageRef.current?.complete && imageRef.current.naturalWidth > 0) {
+        setIsLoaded(true);
+        return;
+      }
+
+      fallbackTimer.current = window.setTimeout(
+        () => setShowFallback(true),
+        fallbackDelayMs
+      );
+
+      return () => {
+        if (fallbackTimer.current) {
+          window.clearTimeout(fallbackTimer.current);
+          fallbackTimer.current = undefined;
+        }
+      };
     }, [src, fallbackDelayMs]);
 
     if (!src || hasError) {
@@ -74,7 +100,7 @@ export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
         )}
 
         <img
-          ref={ref}
+          ref={setImageRef}
           src={src}
           alt={alt}
           className={clsx(
@@ -82,8 +108,23 @@ export const CoverImage = React.forwardRef<HTMLImageElement, CoverImageProps>(
             isLoaded ? "opacity-100" : "opacity-0",
             imageClassName
           )}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
+          onLoad={() => {
+            setIsLoaded(true);
+            setHasError(false);
+
+            if (fallbackTimer.current) {
+              window.clearTimeout(fallbackTimer.current);
+              fallbackTimer.current = undefined;
+            }
+          }}
+          onError={() => {
+            setHasError(true);
+
+            if (fallbackTimer.current) {
+              window.clearTimeout(fallbackTimer.current);
+              fallbackTimer.current = undefined;
+            }
+          }}
           {...props}
         />
       </div>

@@ -15,5 +15,21 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
+<script>
+window.onload = function() {
+    const isAuthenticated = sessionStorage.getItem('authenticated');
+    
+    if (!isAuthenticated) {
+        const password = prompt('请输入访问密码:');
+        if (password === 'your_password_here') {
+            sessionStorage.setItem('authenticated', 'true');
+        } else {
+            alert('密码错误!');
+            window.location.href = 'about:blank';
+        }
+    }
+};
+</script>
+
 
 </html>

@@ -20,7 +20,7 @@ window.onload = function() {
     const isAuthenticated = sessionStorage.getItem('authenticated');
     
     if (!isAuthenticated) {
-        const password = prompt('请输入访问密码:');
+        const password = prompt('123456:');
         if (password === 'your_password_here') {
             sessionStorage.setItem('authenticated', 'true');
         } else {

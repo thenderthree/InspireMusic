@@ -9,27 +9,242 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>InspireMusic</title>
+  <style>
+    /* 登录遮罩层样式 */
+    #auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #auth-box {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    #auth-box h2 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 28px;
+    }
+
+    #auth-box .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    #auth-box .icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    #auth-box input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      transition: border-color 0.3s;
+    }
+
+    #auth-box input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    #auth-box button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #auth-box button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    #auth-box button:active {
+      transform: translateY(0);
+    }
+
+    #auth-box .error {
+      color: #e74c3c;
+      margin-top: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    #auth-box .error.show {
+      display: block;
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 
 <body>
   <div id="root"></div>
+  
+  <!-- 认证遮罩层 -->
+  <div id="auth-overlay" class="hidden">
+    <div id="auth-box">
+      <div class="icon">🎵</div>
+      <h2>InspireMusic</h2>
+      <p class="subtitle">请输入访问密码</p>
+      <form id="auth-form">
+        <input 
+          type="password" 
+          id="password-input" 
+          placeholder="请输入密码" 
+          autocomplete="off"
+          required
+        />
+        <button type="submit">进入</button>
+        <div class="error" id="error-msg">密码错误,请重试</div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.tsx"></script>
 </body>
-<script>
-window.onload = function() {
-    const isAuthenticated = sessionStorage.getItem('authenticated');
-    
-    if (!isAuthenticated) {
-        const password = prompt('123456:');
-        if (password === 'your_password_here') {
-            sessionStorage.setItem('authenticated', 'true');
-        } else {
-            alert('密码错误!');
-            window.location.href = 'about:blank';
-        }
-    }
-};
-</script>
 
+<script>
+(function() {
+  // 配置密码 - 请修改为你的实际密码
+  const CORRECT_PASSWORD = '123456';
+  const MAX_ATTEMPTS = 3;
+  let attempts = 0;
+
+  // 检查是否已认证
+  function checkAuth() {
+    const isAuthenticated = sessionStorage.getItem('authenticated');
+    const authTime = sessionStorage.getItem('authTime');
+    const currentTime = new Date().getTime();
+    
+    // 验证是否过期(可选,24小时后过期)
+    if (isAuthenticated && authTime) {
+      const hoursPassed = (currentTime - parseInt(authTime)) / (1000 * 60 * 60);
+      if (hoursPassed > 24) {
+        sessionStorage.removeItem('authenticated');
+        sessionStorage.removeItem('authTime');
+        return false;
+      }
+      return true;
+    }
+    
+    return !!isAuthenticated;
+  }
+
+  // 显示/隐藏认证界面
+  function toggleAuthOverlay(show) {
+    const overlay = document.getElementById('auth-overlay');
+    const root = document.getElementById('root');
+    
+    if (show) {
+      overlay.classList.remove('hidden');
+      root.style.display = 'none';
+      // 聚焦到密码输入框
+      setTimeout(() => {
+        document.getElementById('password-input').focus();
+      }, 100);
+    } else {
+      overlay.classList.add('hidden');
+      root.style.display = 'block';
+    }
+  }
+
+  // 显示错误消息
+  function showError() {
+    const errorMsg = document.getElementById('error-msg');
+    errorMsg.classList.add('show');
+    setTimeout(() => {
+      errorMsg.classList.remove('show');
+    }, 3000);
+  }
+
+  // 处理认证
+  function handleAuth(password) {
+    if (password === CORRECT_PASSWORD) {
+      sessionStorage.setItem('authenticated', 'true');
+      sessionStorage.setItem('authTime', new Date().getTime().toString());
+      toggleAuthOverlay(false);
+      attempts = 0;
+    } else {
+      attempts++;
+      showError();
+      document.getElementById('password-input').value = '';
+      document.getElementById('password-input').focus();
+      
+      if (attempts >= MAX_ATTEMPTS) {
+        alert(`密码错误次数过多,页面将关闭`);
+        window.location.href = 'about:blank';
+      }
+    }
+  }
+
+  // 页面加载时检查
+  window.addEventListener('DOMContentLoaded', function() {
+    if (!checkAuth()) {
+      toggleAuthOverlay(true);
+    }
+  });
+
+  // 表单提交事件
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('auth-form');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const password = document.getElementById('password-input').value;
+      handleAuth(password);
+    });
+  });
+
+  // 防止绕过验证(可选)
+  window.addEventListener('beforeunload', function() {
+    // 可以在这里添加额外的安全检查
+  });
+
+  // 监听存储变化(多标签页同步)
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'authenticated') {
+      if (e.newValue === 'true') {
+        toggleAuthOverlay(false);
+      } else {
+        toggleAuthOverlay(true);
+      }
+    }
+  });
+})();
+</script>
 
 </html>
